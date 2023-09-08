@@ -109,7 +109,7 @@ class Download:
             try:
                 config = yaml.safe_load(f)
                 Download.apiConnection.setAuthenticationToken(config['apiToken'])
-                Download.baseDirectory = config['baseDirectory']
+                Download.baseDirectory = os.path.expanduser(config['baseDirectory'])
             except yaml.YAMLError as exc:
                 print("Error loading config file")
                 exit(1)
