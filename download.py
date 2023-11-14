@@ -135,7 +135,7 @@ class Download:
         return folders
 
     def getFileInformation(folderId):
-        data = Download.apiConnection.sendGetRequest('api', 'v1', 'folders', str(folderId), 'files')
+        data = Download.apiConnection.sendGetRequest('api', 'v1', 'folders', str(folderId), 'files', per_page=100)
         if 'status' in data:
             return []
         files = [File(fileId=file['id'], fileName=file['display_name'], fileUrl=file['url']) for file in data]
