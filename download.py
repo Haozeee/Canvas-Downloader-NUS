@@ -129,7 +129,7 @@ class Download:
     def getFolderInformation(courseId):
         # Get available folders
         # This returns a list of folders that includes sub folders as well
-        data = Download.apiConnection.sendGetRequest('api', 'v1', 'courses', str(courseId), 'folders')
+        data = Download.apiConnection.sendGetRequest('api', 'v1', 'courses', str(courseId), 'folders', per_page=100)
         folders = [Folder(folderId=folder['id'], folderName=folder['name'], fullName=folder['full_name']) 
             for folder in data if 'files_count' in folder and folder['files_count'] > 0]
         return folders
