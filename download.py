@@ -1,7 +1,7 @@
 import requests
 import os
 import yaml
-import multiprocessing as mp
+import zipfile
 
 class CanvasAPI:
 
@@ -68,7 +68,7 @@ class File:
         self.savePath = self.savePath.replace('//', '/')
 
         # Check if file already exists
-        if not LocalDirectory.canvasFileExists(self.savePath):
+        if not LocalDirectory.canvasFileExists(self.savePath) and self.fileUrl != '':
             # Download Files
             print('      New File detected - Downloading')
             response = requests.get(self.fileUrl)
@@ -83,17 +83,27 @@ class LocalDirectory:
         return os.path.isfile(path)
 
     def saveDownloadedFile(savePath, fileContent):
-        path = Download.baseDirectory + '/' + savePath
+        saveLocation = Download.baseDirectory + '/' + savePath
         # Check if directory exists, create directory if not
-        directory = os.path.dirname(path)
+        directory = os.path.dirname(saveLocation)
         if not os.path.isdir(directory):
             os.makedirs(directory)
         # Sanity check, we don't want to overwrite any existing files
-        if os.path.exists(path):
+        if os.path.exists(saveLocation):
             print("There's probably a bug somewhere")
             exit(1)
-        with open(path, 'wb+') as f:
+        with open(saveLocation, 'wb+') as f:
             f.write(fileContent)
+        if zipfile.is_zipfile(saveLocation):
+            LocalDirectory.handleZipFileDownload(saveLocation)
+
+    # Unzip file into a new directory and remove the zip file
+    def handleZipFileDownload(zipFileLocation):
+        with zipfile.ZipFile(zipFileLocation, 'r') as zip:
+            saveDirectory = os.path.splitext(zipFileLocation)[0]
+            if not os.path.isdir(saveDirectory):
+                os.makedirs(saveDirectory)
+                zip.extractall(path=saveDirectory)
 
 class Download:
 
@@ -141,8 +151,6 @@ class Download:
         files = [File(fileId=file['id'], fileName=file['display_name'], fileUrl=file['url']) for file in data]
         return files
 
-
 if __name__ == '__main__':
     download = Download()
     download.run()
-
