@@ -94,7 +94,7 @@ class LocalDirectory:
             exit(1)
         with open(saveLocation, 'wb+') as f:
             f.write(fileContent)
-        if zipfile.is_zipfile(saveLocation):
+        if os.path.splitext(saveLocation)[1] == '.zip':
             LocalDirectory.handleZipFileDownload(saveLocation)
 
     # Unzip file into a new directory and remove the zip file
