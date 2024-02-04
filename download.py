@@ -71,6 +71,7 @@ class File:
         if not LocalDirectory.canvasFileExists(self.savePath) and self.fileUrl != '':
             # Download Files
             print('      New File detected - Downloading')
+            Download.filesDownloaded += 1
             response = requests.get(self.fileUrl)
             LocalDirectory.saveDownloadedFile(self.savePath, response.content)
 
@@ -94,10 +95,15 @@ class LocalDirectory:
             exit(1)
         with open(saveLocation, 'wb+') as f:
             f.write(fileContent)
-        if os.path.splitext(saveLocation)[1] == '.zip':
-            LocalDirectory.handleZipFileDownload(saveLocation)
 
-    # Unzip file into a new directory and remove the zip file
+        # Customise how different files are handled
+        extension = os.path.splitext(saveLocation)[1]
+        if extension == '.zip':
+            LocalDirectory.handleZipFileDownload(saveLocation)
+        elif extension == '.ppt' or extension == '.pptx':
+            LocalDirectory.handlePowerpointDownloads(saveLocation)
+
+    # Unzip file into a new directory
     def handleZipFileDownload(zipFileLocation):
         with zipfile.ZipFile(zipFileLocation, 'r') as zip:
             saveDirectory = os.path.splitext(zipFileLocation)[0]
@@ -105,11 +111,17 @@ class LocalDirectory:
                 os.makedirs(saveDirectory)
                 zip.extractall(path=saveDirectory)
 
+    # Create a copy of a powerpoint files as a pdf
+    def handlePowerpointDownloads(pptFileLocation):
+        pass
+
 class Download:
 
     apiConnection = CanvasAPI()
     # Base directory where files should be stored
     baseDirectory = '~'
+    # Count of new files downloaded
+    filesDownloaded = 0
 
     def run(self):
         self.getConfigs()
@@ -126,6 +138,7 @@ class Download:
                 exit(1)
 
     def download(self):
+        Download.filesDownloaded = 0
         print("Getting available courses on Canvas")
         data = Download.apiConnection.sendGetRequest('api', 'v1', 'courses', enrollment_state = 'active')
         courses = [Course(courseId=course['id'], courseName=course['name']) for course in data if 'name' in course]
@@ -154,3 +167,4 @@ class Download:
 if __name__ == '__main__':
     download = Download()
     download.run()
+    print(f'\nNew files downloaded: {Download.filesDownloaded}')
