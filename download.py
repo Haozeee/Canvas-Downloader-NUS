@@ -2,6 +2,8 @@ import requests
 import os
 import yaml
 import zipfile
+import time
+import threading
 
 class CanvasAPI:
 
@@ -33,7 +35,7 @@ class Course:
         self.courseName = courseName
 
     def download(self):
-        print(f'  Getting available folders for {self.courseName}')
+        print(f'Checking new files for {self.courseName}')
         self.folders = Download.getFolderInformation(self.courseId)
         for folder in self.folders:
             folder.download(self.courseName)
@@ -47,7 +49,6 @@ class Folder:
         self.fullName = fullName
 
     def download(self, courseName):
-        print(f'    Getting available files for {self.folderName}')
         self.files = Download.getFileInformation(self.folderId)
         for file in self.files:
             file.download(courseName, self.fullName)
@@ -70,8 +71,7 @@ class File:
         # Check if file already exists
         if not LocalDirectory.canvasFileExists(self.savePath) and self.fileUrl != '':
             # Download Files
-            print('      New File detected - Downloading')
-            Download.filesDownloaded += 1
+            print(f'New File detected - Downloading: {self.savePath}')
             response = requests.get(self.fileUrl)
             LocalDirectory.saveDownloadedFile(self.savePath, response.content)
 
@@ -80,7 +80,6 @@ class LocalDirectory:
     def canvasFileExists(savePath) -> bool:
         # Returns True if the Canva file already exists in the local directory
         path = Download.baseDirectory + '/' + savePath
-        print('      ' + path)
         return os.path.isfile(path)
 
     def saveDownloadedFile(savePath, fileContent):
@@ -120,8 +119,6 @@ class Download:
     apiConnection = CanvasAPI()
     # Base directory where files should be stored
     baseDirectory = '~'
-    # Count of new files downloaded
-    filesDownloaded = 0
 
     def run(self):
         self.getConfigs()
@@ -139,15 +136,26 @@ class Download:
 
     def download(self):
         Download.filesDownloaded = 0
-        print("Getting available courses on Canvas")
+        print("Downloading new files from Canvas")
         data = Download.apiConnection.sendGetRequest('api', 'v1', 'courses', enrollment_state = 'active')
-        courses = [Course(courseId=course['id'], courseName=course['name']) for course in data if 'name' in course]
+        courses = [course for course in data if 'name' in course]
+        downloadThreads = []
+
         for course in courses:
-            course.download()
+            t = threading.Thread(target=Download.downloadCourse, args=(course['id'], course['name'],))
+            t.start()
+            downloadThreads.append(t)
+
+        for t in downloadThreads:
+            t.join()
 
     '''
     Static Methods
     '''
+
+    def downloadCourse(courseId, courseName):
+        course = Course(courseId, courseName)
+        course.download()
             
     def getFolderInformation(courseId):
         # Get available folders
@@ -165,6 +173,7 @@ class Download:
         return files
 
 if __name__ == '__main__':
+    start = time.time()
     download = Download()
     download.run()
-    print(f'\nNew files downloaded: {Download.filesDownloaded}')
+    print(f'Time taken: {time.time() -  start:.2f} seconds')
