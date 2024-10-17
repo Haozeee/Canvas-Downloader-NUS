@@ -62,11 +62,10 @@ class File:
 
     def download(self, courseName, folderName):
         # Parse canvas naming converntion to what we want to store in local
+        # Sometimes courses can have 2 codes e.g CS4222/CS5422
         course = courseName.replace('/',' ').split(' ')[0]
-        folder = '/'.join(folderName.split('/')[1:])
-        self.savePath = course + '/' + (folder) + '/' + self.fileName
-        # Handle the case when folder == ''
-        self.savePath = self.savePath.replace('//', '/')
+        folder = os.path.join(*folderName.split('/')[1:])
+        self.savePath = os.path.join(course, folder, self.fileName)
 
         # Check if file already exists
         if not LocalDirectory.canvasFileExists(self.savePath) and self.fileUrl != '':
@@ -79,11 +78,11 @@ class LocalDirectory:
 
     def canvasFileExists(savePath) -> bool:
         # Returns True if the Canva file already exists in the local directory
-        path = Download.baseDirectory + '/' + savePath
+        path = os.path.join(Download.baseDirectory, savePath)
         return os.path.isfile(path)
 
     def saveDownloadedFile(savePath, fileContent):
-        saveLocation = Download.baseDirectory + '/' + savePath
+        saveLocation = os.path.join(Download.baseDirectory, savePath)
         # Check if directory exists, create directory if not
         directory = os.path.dirname(saveLocation)
         if not os.path.isdir(directory):
